@@ -97,7 +97,7 @@ router.get('/', checkAuth, limiter, async (req, res) => {
         req.query.target || 'host',
       )
 
-      if (!timeoutExceeds && typeof videoId !== 'string') {
+      if (!timeoutExceeds && typeof videoId === 'string') {
         isRedirected = true
         return res.status(200).json({
           id: videoId,
@@ -107,9 +107,11 @@ router.get('/', checkAuth, limiter, async (req, res) => {
     } catch (error) {
       console.error(error)
     } finally {
-      return res.status(400).json({
-        error: 'Could not process the video please try again later',
-      })
+      if (!isRedirected) {
+        return res.status(400).json({
+          error: 'Could not process the video please try again later',
+        })
+      }
     }
   } catch (error) {
     console.error(error)
