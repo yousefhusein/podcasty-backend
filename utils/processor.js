@@ -66,12 +66,12 @@ export default async function processVideo(
     const promptText =
       promptData ||
       'Analyze the non-verbal communication and body language in this video segment, noting any significant patterns or moments.'
+    // to here everything are good
+    console.log('file size', file.size)
 
-    console.log(`Prompt text:`, promptText)
-
-    const { error: uploadError } = await supabase.storage
+    const { error: uploadError, data } = await supabase.storage
       .from('videos')
-      .upload(filePath, blob, { contentType: fileType, cacheControl: '3600' })
+      .upload(filePath, file, { contentType: `video/mp4` })
 
     if (uploadError) {
       console.error('Upload error:', uploadError)
@@ -103,7 +103,7 @@ export default async function processVideo(
         { text: promptText },
         {
           inlineData: {
-            mimeType: 'videp/mp4',
+            mimeType: 'video/mp4',
             data: base64Data,
           },
         },
