@@ -9,12 +9,8 @@ export default async function processVideo(
   blob,
   analysisTarget,
 ) {
-  let file = new File([blob], fileName, { type: fileType })
-  let videoId = null
-  let filePath = null
-  let finalAnalysis = ''
-
   try {
+    const file = new File([blob], fileName, { type: fileType })
     const apiKey = await getGeminiApiKey()
     const genAI = new GoogleGenerativeAI(apiKey)
     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' })
@@ -22,9 +18,9 @@ export default async function processVideo(
     await validateGeminiApi(apiKey, model)
 
     const timestamp = Date.now()
-    filePath = `${user.id}/${timestamp}_${fileName.replace(/[^a-zA-Z0-9._-]/g, '_')}`
+    const filePath = `${user.id}/${timestamp}_${fileName.replace(/[^a-zA-Z0-9._-]/g, '_')}`
 
-    // Create video processing record
+    // إنشاء سجل معالجة الفيديو
     const { data: record, error: createError } = await supabase
       .from('video_processing')
       .insert({
@@ -39,15 +35,10 @@ export default async function processVideo(
       .single()
 
     if (createError || !record?.id) {
-      console.error('Failed to create video processing record')
-      return null
+      throw new Error('Failed to create video processing record')
     }
 
-    videoId = record.id
-    // to here everything are good
-    // Get analysis prompt using RPC call
-    console.log('Fetching analysis prompt for target:', analysisTarget)
-
+    const videoId = record.id
     const validTargets = ['host', 'guest']
     const targetType = validTargets.includes(analysisTarget)
       ? `${analysisTarget}_analysis`
@@ -57,76 +48,38 @@ export default async function processVideo(
       'get_analysis_prompt',
       { target_type: targetType },
     )
-
-    if (promptError) {
-      console.error('Error fetching prompt:', promptError)
-      return null
-    }
+    if (promptError) throw new Error('Error fetching prompt')
 
     const promptText =
       promptData ||
-      'Analyze the non-verbal communication and body language in this video segment, noting any significant patterns or moments.'
-    // to here everything are good
-    console.log('file size', file.size)
+      'Analyze the non-verbal communication and body language in this video segment.'
 
-    const { error: uploadError, data } = await supabase.storage
+    // رفع الفيديو
+    const { error: uploadError } = await supabase.storage
       .from('videos')
-      .upload(filePath, file, { contentType: `video/mp4` })
+      .upload(filePath, file, { contentType: 'video/mp4' })
+    if (uploadError) throw new Error('Upload error')
 
-    if (uploadError) {
-      console.error('Upload error:', uploadError)
-      return null
-    }
-
-    console.log('Small file uploaded successfully')
-
-    const { error: uploadError2 } = await supabase
+    // تحديث حالة الفيديو بعد الرفع
+    const { error: uploadStatusError } = await supabase
       .from('video_processing')
       .update({ status: 'uploaded' })
       .eq('id', videoId)
+    if (uploadStatusError) throw new Error('Failed to update upload status')
 
-    if (uploadError2) {
-      console.error(uploadError2)
-      return null
-    }
+    // معالجة الفيديو باستخدام Gemini AI
+    const fileData = await file.arrayBuffer()
+    const base64Data = Buffer.from(new Uint8Array(fileData)).toString('base64')
 
-    try {
-      const fileData = await file.arrayBuffer()
-      const base64Data = Buffer.from(new Uint8Array(fileData)).toString(
-        'base64',
-      )
+    const result = await model.generateContent([
+      { text: promptText },
+      { inlineData: { mimeType: 'video/mp4', data: base64Data } },
+    ])
 
-      console.log(`fileData`, fileData)
-      console.log(`Base64`, base64Data)
-
-      const result = await model.generateContent([
-        { text: promptText },
-        {
-          inlineData: {
-            mimeType: 'video/mp4',
-            data: base64Data,
-          },
-        },
-      ])
-
-      finalAnalysis = result.response?.candidates?.[0]?.text || ''
-      console.log(finalAnalysis)
-    } catch (error) {
-      console.error('Error processing small file:', error)
-      return null
-    }
+    const finalAnalysis = result.response?.candidates?.[0]?.text || ''
+    return videoId
   } catch (error) {
     console.error('Processing error:', error)
-
-    if (videoId) {
-      await supabase
-        .from('video_processing')
-        .update({ status: 'failed' })
-        .eq('id', videoId)
-    }
-
     return null
   }
-
-  return videoId
 }
