@@ -4,6 +4,7 @@ import { ApifyClient } from 'apify-client'
 import { rateLimit } from 'express-rate-limit'
 import processor from '../utils/processor.js'
 import { supabase } from '../utils/supabase.js'
+import fetch from 'node-fetch'
 
 const apifyClient = new ApifyClient({
   token: process.env.APIFY_CLIENT_API_KEY,
