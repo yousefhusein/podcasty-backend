@@ -5,6 +5,7 @@ import { rateLimit } from 'express-rate-limit'
 import processor from '../utils/processor.js'
 import { supabase } from '../utils/supabase.js'
 import fetch from 'node-fetch'
+import { downloadVideoAsBlob } from '../download.js'
 
 const apifyClient = new ApifyClient({
   token: process.env.APIFY_CLIENT_API_KEY,
@@ -79,8 +80,12 @@ router.get('/', checkAuth, limiter, async (req, res) => {
     }
     let isRedirected = false
     let timeoutExceeds = false
-    const videoResponse = await fetch(output.download_url)
-    const blob = await videoResponse.blob()
+    // const videoResponse = await fetch(output.download_url)
+    const blob = await downloadVideoAsBlob(output.download_url)
+
+    if (!blob) {
+      return res.status(500).json({ error: 'video unavailable' })
+    }
 
     setTimeout(() => {
       !isRedirected && res.status(408).json({ error: 'Timeout exceeds 300000' })
