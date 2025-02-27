@@ -96,7 +96,8 @@ export default async function processVideo(
         'base64',
       )
 
-      console.log
+      console.log(`fileData`, fileData)
+      console.log(`Base64`, base64Data)
 
       const result = await model.generateContent([
         { text: promptText },
