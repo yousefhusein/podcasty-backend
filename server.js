@@ -6,12 +6,7 @@ import youtubeRouter from './routes/youtube.js'
 
 const app = express()
 
-app.use(
-  cors({
-    origin: process.env.PRODUCTION_URL || '*',
-    exposedHeaders: ['x-video-title', 'x-video-id'],
-  }),
-)
+app.use(cors({ origin: process.env.PRODUCTION_URL || '*' }))
 app.use('/youtube-download', youtubeRouter)
 
 app.listen(3000, () => {

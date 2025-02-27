@@ -13,8 +13,6 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@ffmpeg/ffmpeg": "^0.12.15",
-    "@ffmpeg/util": "^0.12.2",
     "@google/generative-ai": "^0.22.0",
     "@types/express": "^5.0.0",
     "@types/express-rate-limit": "^6.0.2",
@@ -28,5 +26,8 @@
   "devDependencies": {
     "@supabase/supabase-js": "^2.49.1",
     "cors": "^2.8.5"
+  },
+  "engines": {
+    "node": "22.x"
   }
 }

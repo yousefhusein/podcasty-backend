@@ -97,7 +97,7 @@ router.get('/', checkAuth, limiter, async (req, res) => {
         req.query.target || 'host',
       )
 
-      if (!timeoutExceeds && videoId) {
+      if (!timeoutExceeds && typeof videoId !== 'string') {
         isRedirected = true
         return res.status(200).json({
           id: videoId,
@@ -113,7 +113,7 @@ router.get('/', checkAuth, limiter, async (req, res) => {
     }
   } catch (error) {
     console.error(error)
-    res.status(500).json({ error: 'Unable to download the video' })
+    return res.status(500).json({ error: 'Unable to download the video' })
   }
 })
 
