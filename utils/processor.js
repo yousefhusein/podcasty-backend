@@ -43,9 +43,8 @@ export default async function processVideo(
       return null
     }
 
-    console.log(record)
     videoId = record.id
-
+    // to here everything are good
     // Get analysis prompt using RPC call
     console.log('Fetching analysis prompt for target:', analysisTarget)
 
@@ -67,6 +66,8 @@ export default async function processVideo(
     const promptText =
       promptData ||
       'Analyze the non-verbal communication and body language in this video segment, noting any significant patterns or moments.'
+
+    console.log(`Prompt text:`, promptText)
 
     const { error: uploadError } = await supabase.storage
       .from('videos')
@@ -95,11 +96,13 @@ export default async function processVideo(
         'base64',
       )
 
+      console.log
+
       const result = await model.generateContent([
         { text: promptText },
         {
           inlineData: {
-            mimeType: fileType,
+            mimeType: 'videp/mp4',
             data: base64Data,
           },
         },
