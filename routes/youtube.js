@@ -4,8 +4,9 @@ import { ApifyClient } from 'apify-client'
 import { rateLimit } from 'express-rate-limit'
 import processor from '../utils/processor.js'
 import { supabase } from '../utils/supabase.js'
-import fetch from 'node-fetch'
+// import fetch from 'node-fetch'
 import { downloadVideoAsBlob } from '../download.js'
+import { getRedirectedURL } from '../getRedirectedURL.js'
 
 const apifyClient = new ApifyClient({
   token: process.env.APIFY_CLIENT_API_KEY,
@@ -46,7 +47,9 @@ router.get('/', checkAuth, limiter, async (req, res) => {
   console.log(`Extract video: ${videoURL}`)
   const media =
     medias.find((e) => (e?.download_url || e?.url) && e.is_audio) || medias[0]
-  const download_url = media.download_url || media.url
+  const not_prepared_d_url = media.download_url || media.url
+  console.log(`Not prepared`, not_prepared_d_url)
+  const download_url = await getRedirectedURL(not_prepared_d_url)
   console.log(`Download URL: ${download_url}`)
   /**
    * @type {import('@supabase/supabase-js').User}
@@ -94,7 +97,7 @@ router.get('/', checkAuth, limiter, async (req, res) => {
 
     console.log(`Processing...`)
     try {
-      const videoId = processor(
+      const result = await processor(
         user,
         `${output.title}.mp4`,
         'video/mp4',
@@ -102,11 +105,22 @@ router.get('/', checkAuth, limiter, async (req, res) => {
         req.query.target || 'host',
       )
 
-      if (!timeoutExceeds && typeof videoId === 'string') {
+      if (!result) {
+        return res.status(400).json({
+          error: 'Could not process the video please try again later',
+        })
+      }
+
+      if (!timeoutExceeds && typeof result.videoId === 'string') {
         isRedirected = true
         return res.status(200).json({
-          id: videoId,
+          id: result.videoId,
+          ...result,
           success: true,
+        })
+      } else if (!timeoutExceeds) {
+        return res.status(400).json({
+          error: 'Could not process the video please try again later',
         })
       }
     } catch (error) {

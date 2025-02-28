@@ -20,7 +20,6 @@ export default async function processVideo(
     const timestamp = Date.now()
     const filePath = `${user.id}/${timestamp}_${fileName.replace(/[^a-zA-Z0-9._-]/g, '_')}`
 
-    // إنشاء سجل معالجة الفيديو
     const { data: record, error: createError } = await supabase
       .from('video_processing')
       .insert({
@@ -72,12 +71,15 @@ export default async function processVideo(
     const base64Data = Buffer.from(new Uint8Array(fileData)).toString('base64')
 
     const result = await model.generateContent([
-      { text: promptText },
+      promptText,
       { inlineData: { mimeType: 'video/mp4', data: base64Data } },
     ])
 
-    const finalAnalysis = result.response?.candidates?.[0]?.text || ''
-    return videoId
+    const finalAnalysis = result.response.text
+    return {
+      videoId,
+      finalAnalysis,
+    }
   } catch (error) {
     console.error('Processing error:', error)
     return null
