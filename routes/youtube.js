@@ -7,6 +7,7 @@ import { supabase } from '../utils/supabase.js'
 // import fetch from 'node-fetch'
 import { downloadVideoAsBlob } from '../download.js'
 import { getRedirectedURL } from '../getRedirectedURL.js'
+import { Readable } from 'stream'
 
 const apifyClient = new ApifyClient({
   token: process.env.APIFY_CLIENT_API_KEY,
@@ -139,6 +140,29 @@ router.get('/', checkAuth, limiter, async (req, res) => {
   } catch (error) {
     console.error(error)
     return res.status(500).json({ error: 'Unable to download the video' })
+  }
+})
+
+router.get('/download', async (req, res) => {
+  try {
+    const url = req.query.url
+    const redirectURL = (await getRedirectedURL(url)) || url
+    const blob = await downloadVideoAsBlob(redirectURL)
+
+    // Convert Blob to Stream
+    const buffer = await blob.arrayBuffer() // Convert Blob to ArrayBuffer
+    const readableStream = Readable.from(Buffer.from(buffer)) // Create a Readable stream
+
+    // Set response headers
+    res.setHeader('Content-Type', blob.type)
+    res.setHeader('Content-Length', blob.size)
+    res.setHeader('Content-Disposition', 'attachment; filename="file.txt"')
+
+    // Pipe stream to response
+    readableStream.pipe(res)
+  } catch (error) {
+    console.error('Error:', error)
+    res.status(500).send('Internal Server Error')
   }
 })
 
