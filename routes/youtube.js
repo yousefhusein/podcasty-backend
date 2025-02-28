@@ -47,10 +47,10 @@ router.get('/', checkAuth, limiter, async (req, res) => {
   console.log(`Extract video: ${videoURL}`)
   const media =
     medias.find((e) => (e?.download_url || e?.url) && e.is_audio) || medias[0]
-  const not_prepared_d_url = media.download_url || media.url
-  console.log(`Not prepared`, not_prepared_d_url)
-  const download_url = await getRedirectedURL(not_prepared_d_url)
-  console.log(`Download URL: ${download_url}`)
+  const download_url = media.download_url || media.url
+  // console.log(`Not prepared`, not_prepared_d_url)
+  // const download_url = await getRedirectedURL(not_prepared_d_url)
+  // console.log(`Download URL: ${download_url}`)
   /**
    * @type {import('@supabase/supabase-js').User}
    */
