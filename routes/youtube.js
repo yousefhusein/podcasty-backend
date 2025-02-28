@@ -80,7 +80,11 @@ router.get('/', checkAuth, limiter, async (req, res) => {
       title: items?.[0]?.result?.title,
       duration: items?.[0]?.result?.duration,
       download_url,
+      success: true,
+      url: download_url,
     }
+
+    return res.status(200).json(output)
     let isRedirected = false
     let timeoutExceeds = false
     // const videoResponse = await fetch(output.download_url)
